@@ -1,3 +1,5 @@
+#M. Satria Jalasena - 19090090
+
 import json
 import pymongo
 from bson.objectid import ObjectId
