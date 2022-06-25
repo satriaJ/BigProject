@@ -1,4 +1,5 @@
-#M. Satria Jalasena - 19090090
+# M. Satria Jalasena - 19090090
+# 6C
 
 import json
 import pymongo
@@ -52,7 +53,7 @@ def model_predict(img, model):
     return preds
 
 
-@app.route('/predict/API/v1', methods=['POST'])
+@app.route('/API/v1/predict', methods=['POST'])
 def predict():
     try:
         # Request gambar
@@ -97,7 +98,7 @@ def predict():
 
 
 # ========== CREATE USER ==========
-@app.route("/users/create/", methods=["POST"])
+@app.route("/API/v1/users/create/", methods=["POST"])
 def create_user():
     try:
         user = {
@@ -127,7 +128,7 @@ def create_user():
 
 
 # ========== LOGIN USER ==========
-@app.route("/users/login", methods=["POST"])
+@app.route("/API/v1/users/login", methods=["POST"])
 def login_user():
     try:
         login_user = db.users.find_one({'username': request.form["username"]})
@@ -171,12 +172,18 @@ def login_user():
 
 
 # ========== CREATE FRUIT ==========
-@app.route("/fruits/create", methods=["POST"])
+@app.route("/API/v1/fruits/create", methods=["POST"])
 def create_plant():
     try:
         if not session.get("username"):
-            
-            return redirect("/login")
+            return Response(
+                response=json.dumps({
+                    "message": "Login Terlebih Dahulu!!"
+                }),
+                status=500,
+                mimetype="application/json"
+            )
+            # return redirect("/login")
         
         plant = {
             "nama": request.form["nama"],
@@ -194,34 +201,29 @@ def create_plant():
             status=200,
             mimetype="application/json"
         )
-        else:
-            return Response(
-                response=json.dumps({
-                    "message": "Token Salah!"
-                }),
-                status=500,
-                mimetype="application/json"
-            )
-        except Exception as ex:
-            print(ex)
-            return Response(
-                response=json.dumps({"message": "Cannot Create Fruit!"}),
-                status=500,
-                mimetype="application/json"
+    except Exception as ex:
+        print(ex)
+        return Response(
+            response=json.dumps({"message": "Cannot Create Fruit!"}),
+            status=500,
+            mimetype="application/json"
             )
 
 # =======================================
 
 
 # ========== READ ==========
-@app.route("/fruits", methods=["GET"])
+@app.route("/API/v1/fruits", methods=["GET"])
 def get_fruits():
     try:
         if not session.get("username"):
-            # if not there in the session then redirect to the login page
-            return redirect("/login")
-        # token = db.users.find_one({"token": request.json["token"]})
-        # if token:
+            return Response(
+                response=json.dumps({
+                    "message": "Login Terlebih Dahulu!!"
+                }),
+                status=500,
+                mimetype="application/json"
+            )
         data = list(db.fruits.find())
         # Convert to string
         for plant in data:
@@ -231,34 +233,32 @@ def get_fruits():
             status=200,
             mimetype="application/json"
         )
-        else:
-            return Response(
-                response=json.dumps({
-                    "message": "Token Salah!"
-                }),
-                status=500,
-                mimetype="application/json"
-            )
-        except Exception as ex:
-            print(ex)
-            return Response(
-                response=json.dumps({
-                    "message": "Cannot Get fruits!"
-                }),
-                status=500,
-                mimetype="application/json"
-            )
+    except Exception as ex:
+        print(ex)
+        return Response(
+            response=json.dumps({
+                "message": "Cannot Get fruits!"
+            }),
+            status=500,
+            mimetype="application/json"
+        )
 
 # ============================================
 
 
 # ========== UPDATE ==========
-@ app.route("/fruits/update/<id>", methods=["PUT"])
+@ app.route("/API/v1/fruits/update/<id>", methods=["PUT"])
 def update_plant(id):
     try:
-        token = db.users.find_one({"token": request.json["token"]})
-        if token:
-            dbResponse = db.fruits.update_one(
+        if not session.get("username"):
+            return Response(
+                response=json.dumps({
+                    "message": "Login Terlebih Dahulu!!"
+                }),
+                status=500,
+                mimetype="application/json"
+            )
+        dbResponse = db.fruits.update_one(
                 {"_id": ObjectId(id)},
                 {"$set": {
                     "nama": request.json["nama"],
@@ -267,25 +267,17 @@ def update_plant(id):
                     "nutrisi": request.json["nutrisi"],
                     "manfaat": request.json["manfaat"]
                 }}
+        )
+        if dbResponse.modified_count == 1:
+            return Response(
+                response=json.dumps({"message": "Fruit Updated"}),
+                status=200,
+                mimetype="application/json"
             )
-            if dbResponse.modified_count == 1:
-                return Response(
-                    response=json.dumps({"message": "Fruit Updated"}),
-                    status=200,
-                    mimetype="application/json"
-                )
-            else:
-                return Response(
-                    response=json.dumps({"message": "Nothing To Update"}),
-                    status=200,
-                    mimetype="application/json"
-                )
         else:
             return Response(
-                response=json.dumps({
-                    "message": "Token Salah!"
-                }),
-                status=500,
+                response=json.dumps({"message": "Nothing To Update"}),
+                status=200,
                 mimetype="application/json"
             )
     except Exception as ex:
@@ -300,42 +292,41 @@ def update_plant(id):
 
 
 # ========== DELETE ==========
-@ app.route("/fruits/delete/<id>", methods=["DELETE"])
+@ app.route("/API/v1/fruits/delete/<id>", methods=["DELETE"])
 def delete_plant(id):
     try:
-        token = db.users.find_one({"token": request.json["token"]})
-        if token:
-            dbResponse = db.fruits.delete_one({"_id": ObjectId(id)})
-            if dbResponse.deleted_count == 1:
-                return Response(
-                    response=json.dumps({
+        if not session.get("username"):
+            return Response(
+                response=json.dumps({
+                    "message": "Login Terlebih Dahulu!!"
+                }),
+                status=500,
+                mimetype="application/json"
+            )     
+        dbResponse = db.fruits.delete_one({"_id": ObjectId(id)})
+        if dbResponse.deleted_count == 1:
+            return Response(
+                response=json.dumps({
                         "message": "Plant Deleted",
                         "id": f"{id}"
                     }),
                     status=200,
                     mimetype="application/json"
-                )
-            else:
-                return Response(
-                    response=json.dumps({
+            )
+        else:
+            return Response(
+                response=json.dumps({
                         "message": "Plant Not Found",
                         "id": f"{id}"
                     }),
                     status=200,
                     mimetype="application/json"
-                )
-        else:
-            return Response(
-                response=json.dumps({
-                    "message": "Token Salah!"
-                }),
-                status=500,
-                mimetype="application/json"
-            )
+           )
+        
     except Exception as ex:
         print(ex)
         return Response(
-            response=json.dumps({"message": "Sorry Cannot Delete!"}),
+            response=json.dumps({"message": "Cannot Delete!"}),
             status=500,
             mimetype="application/json"
         )
